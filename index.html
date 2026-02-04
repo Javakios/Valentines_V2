@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Quest: The Escape</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="gui-layer">
+        <div id="clue-box">
+            <h3 id="clue-title">Γρίφος</h3>
+            <p id="clue-text">...</p>
+            <button onclick="document.getElementById('clue-box').style.display='none'"
+                style="margin-top:10px; padding:5px 10px; font-size:1em; color:black;">Κλείσιμο</button>
+        </div>
+        <div id="interaction-prompt">Πάτα [E] για Αλληλεπίδραση</div>
+    </div>
+
+    <div id="final-overlay">
+        <h1 class="valentine-text">Θέλεις να γίνεις ο Βαλεντίνος μου;</h1>
+        <div class="buttons">
+            <button id="btn-yes">ΝΑΙ! ❤️</button>
+            <button id="btn-no">όχι...</button>
+        </div>
+    </div>
+
+    <div id="success-popup">
+        Ναιιι!! Σ' αγαπώ σμουτς! ❤️🥰
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

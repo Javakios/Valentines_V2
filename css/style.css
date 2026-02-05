@@ -1,3 +1,24 @@
+/* Global Layout */
+body,
+html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Fix Scrollbars */
+    background: #000;
+}
+
+#canvas-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+}
+
 /* GUI Overlay */
 #gui-layer {
     position: absolute;
@@ -38,6 +59,51 @@
     margin-bottom: 20%;
     opacity: 0;
     transition: opacity 0.3s;
+}
+
+/* Keypad / Safe Input Overlay (Re-adding since it was missing in file view) */
+#keypad-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(20, 20, 30, 0.95);
+    border: 4px solid #00ffaa;
+    border-radius: 15px;
+    padding: 20px;
+    display: none;
+    z-index: 1500;
+    box-shadow: 0 0 30px #00ffaa;
+}
+
+.keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.key-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5em;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.key-btn:hover {
+    background: #555;
+}
+
+.key-btn.action {
+    background: #008855;
+}
+
+.key-btn.close {
+    background: #880000;
+    grid-column: span 3;
 }
 
 /* Final Update Overlay */

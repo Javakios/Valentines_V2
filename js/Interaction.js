@@ -9,13 +9,31 @@ export class InteractionManager {
             knownCode: false,
             hasKey: false
         };
+        this.currentHover = null;
         this.setupProps();
         this.setupUI();
     }
 
     setupProps() {
-        const addProp = (geom, col, x, y, z, name, interactionLogic, isFinal) => {
-            const mat = new THREE.MeshStandardMaterial({ color: col, emissive: 0x111111 });
+        const texLoader = new THREE.TextureLoader();
+        const texWood = texLoader.load('textures/wood_floor.png');
+        const texMetal = texLoader.load('textures/metal_safe.png');
+
+        // Helper to apply texture options
+        texWood.wrapS = texWood.wrapT = THREE.RepeatWrapping;
+        texMetal.wrapS = texMetal.wrapT = THREE.RepeatWrapping;
+
+        const addProp = (geom, col, x, y, z, name, interactionLogic, isFinal, texture = null) => {
+            const matParams = { color: col, emissive: 0x000000 };
+            if (texture) {
+                matParams.map = texture;
+                matParams.roughness = 0.8;
+                matParams.metalness = 0.2;
+            } else {
+                matParams.roughness = 0.5;
+            }
+
+            const mat = new THREE.MeshStandardMaterial(matParams);
             const mesh = new THREE.Mesh(geom, mat);
             mesh.position.set(x, y + (geom.parameters.height ? geom.parameters.height / 2 : 0), z);
             mesh.castShadow = true;
@@ -24,45 +42,47 @@ export class InteractionManager {
                 mesh,
                 name,
                 logic: interactionLogic,
-                type: isFinal ? 'final' : 'riddle'
+                type: isFinal ? 'final' : 'riddle',
+                baseColor: col
             });
             const l = new THREE.PointLight(col, 2, 5);
             l.position.y = 2;
             mesh.add(l);
         };
 
-        // 1. Desk (Glass)
-        addProp(new THREE.BoxGeometry(1.5, 1, 1), 0x8B4513, -8, 2.2, 5, "Μικρό Σεντούκι",
+        // 1. Desk (Glass) - Uses WOOD Texture
+        addProp(new THREE.BoxGeometry(1.5, 1, 1), 0xffffff, -8, 2.2, 5, "Μικρό Σεντούκι",
             () => {
                 if (this.gameState.hasGlass) return "Άδειο.";
                 this.gameState.hasGlass = true;
                 return "Βρήκες Μεγεθυντικό Φακό! 🔍";
-            });
+            }, false, texWood);
 
-        // 2. Note (Code)
+        // 2. Note (Code) - Paper (No texture, just white)
         addProp(new THREE.PlaneGeometry(0.8, 0.8), 0xffffff, 3.5, 2.21, -30, "Χαρτί",
             () => {
                 if (!this.gameState.hasGlass) return "Πολύ μικρό για να διαβαστεί.";
                 this.gameState.knownCode = true;
                 return "Κωδικός: 1 4 3";
-            });
+            }, false, null);
         this.interactables[1].mesh.rotation.x = -Math.PI / 2;
 
-        // 3. Safe (Key)
-        addProp(new THREE.BoxGeometry(1.5, 1.5, 1.5), 0x222222, 8, 2.2, -5, "Χρηματοκιβώτιο",
+        // 3. Safe (Key) - Uses METAL Texture
+        addProp(new THREE.BoxGeometry(1.5, 1.5, 1.5), 0x888888, 8, 2.2, -5, "Χρηματοκιβώτιο",
             () => {
                 if (this.gameState.hasKey) return "Άδειο.";
                 if (this.gameState.knownCode) {
                     this.gameState.hasKey = true;
+                    // Play Sound
+                    if (window.soundManager) window.soundManager.playBeep(880, 'triangle');
                     return "Κωδικός Δεκτός. Βρέθηκε Κλειδί! 🗝️";
                 }
                 return "Κλειδωμένο. Χρειάζεται Κωδικό.";
-            });
+            }, false, texMetal);
 
         // 4. The HEART (Real Shape)
         const x = 0, y = 0;
         const heartShape = new THREE.Shape();
-        // Standard Heart Curve
         heartShape.moveTo(x + 5, y + 5);
         heartShape.bezierCurveTo(x + 5, y + 5, x + 4, y, x, y);
         heartShape.bezierCurveTo(x - 6, y, x - 6, y + 7, x - 6, y + 7);
@@ -73,23 +93,14 @@ export class InteractionManager {
 
         const extrudeSettings = { depth: 2, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 0.5, bevelThickness: 0.5 };
         const hGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
-        // Center it roughly
         hGeo.center();
 
-        const hMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0022, roughness: 0.2 });
+        const hMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x000000, roughness: 0.2 });
         const heart = new THREE.Mesh(hGeo, hMat);
 
-        // Orientation
-        heart.rotation.z = Math.PI; // Flip it upright? The shape draws upside down usually or depends on coords. 
-        // Bezier above goes +Y as it goes down? No, 0,0 is bottom tip references.
-        // Let's rotate Z 180 to be safe, or just check.
-        // Actually coords: x+5,y+19 is TIP? No, 0,0 is usually notch? 
-        // Usually heart shapes in ThreeJS examples are upside down.
         heart.rotation.z = Math.PI;
-
         heart.position.set(0, 4, -65);
-        heart.scale.set(0.2, 0.2, 0.2); // Scale down
-
+        heart.scale.set(0.2, 0.2, 0.2);
         this.scene.add(heart);
 
         this.interactables.push({
@@ -98,11 +109,18 @@ export class InteractionManager {
             logic: () => {
                 if (this.gameState.hasKey) {
                     document.getElementById('final-overlay').classList.add('visible');
+                    // Play Win Sound
+                    if (window.soundManager) {
+                        window.soundManager.playBeep(523, 'sine');
+                        setTimeout(() => window.soundManager.playBeep(659, 'sine'), 200);
+                        setTimeout(() => window.soundManager.playBeep(784, 'sine'), 400);
+                    }
                     return "UNLOCKED";
                 }
                 return "Κλειδωμένο. Χρειάζεται Κλειδί.";
             },
-            type: 'final'
+            type: 'final',
+            baseColor: 0xff0000
         });
 
         const hl = new THREE.PointLight(0xff0000, 3, 15);
@@ -116,6 +134,7 @@ export class InteractionManager {
 
         btnYes.onclick = () => {
             successPopup.style.display = 'block';
+            this.spawnConfetti();
         };
 
         let yesScale = 1.0;
@@ -131,16 +150,50 @@ export class InteractionManager {
         btnNo.onclick = growYes;
     }
 
+    spawnConfetti() {
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'];
+        for (let i = 0; i < 100; i++) {
+            const confetti = document.createElement('div');
+            confetti.style.cssText = `
+                position: fixed;
+                left: ${Math.random() * 100}vw;
+                top: -10px;
+                width: 10px; height: 10px;
+                background: ${colors[Math.floor(Math.random() * colors.length)]};
+                z-index: 2000;
+                transform: rotate(${Math.random() * 360}deg);
+                animation: fall ${Math.random() * 2 + 2}s linear forwards;
+            `;
+            document.body.appendChild(confetti);
+
+            // Cleanup
+            setTimeout(() => confetti.remove(), 4000);
+        }
+
+        // Add minimal CSS for falling (Injection)
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes fall {
+                to { top: 100vh; transform: rotate(720deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     check(playerPos, isInteractPressed) {
         let closest = null;
         let minDist = 8;
 
         for (let item of this.interactables) {
+            // Reset Emission
+            if (item.mesh.material.emissive) {
+                item.mesh.material.emissive.setHex(0x000000);
+            }
+
             const dist = playerPos.distanceTo(item.mesh.position);
             if (dist < minDist) closest = item;
             if (item.type === 'final') {
                 item.mesh.rotation.y += 0.02;
-                // Bounce
                 item.mesh.position.y = 4 + Math.sin(Date.now() * 0.003) * 0.5;
             }
         }
@@ -149,6 +202,13 @@ export class InteractionManager {
         if (closest) {
             prompt.style.opacity = 1;
             prompt.innerText = `Πάτα E: ${closest.name}`;
+
+            // GLOW EFFECT
+            if (closest.mesh.material.emissive) {
+                // Pulse
+                const val = 0.2 + (Math.sin(Date.now() * 0.01) * 0.1 + 0.1);
+                closest.mesh.material.emissive.setHex(0x444444);
+            }
 
             if (isInteractPressed) {
                 const message = closest.logic();
@@ -161,6 +221,7 @@ export class InteractionManager {
             }
         } else {
             prompt.style.opacity = 0;
+            this.currentHover = null;
         }
         return false;
     }

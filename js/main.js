@@ -42,7 +42,7 @@ const joystick = new Joystick({
         // So Joystick Y -1 should map to W (Move Forward).
         // Joystick Y +1 should map to S (Move Backward).
 
-        // Let's inject into input keys
+        // Standard Mapping (Up = Forward)
         if (data.y < -0.3) keys.w = true; else keys.w = false;
         if (data.y > 0.3) keys.s = true; else keys.s = false;
 
@@ -56,14 +56,35 @@ const cameraOffset = new THREE.Vector3(0, 5, 8);
 
 // Input
 const keys = { w: false, a: false, s: false, d: false };
+
+const triggerInteraction = () => {
+    const hit = interactionManager.check(player.getPosition(), true);
+    if (hit) window.soundManager.playBeep(600, 'sine');
+    window.soundManager.resume();
+};
+
+// Bind Mobile Button (Touch & Click)
+const btn = document.getElementById('mobile-interact-btn');
+const handleInteract = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Add visual feedback class
+    btn.style.transform = "scale(0.8)";
+    setTimeout(() => btn.style.transform = "scale(1)", 100);
+
+    triggerInteraction();
+};
+btn.addEventListener('touchstart', handleInteract);
+btn.addEventListener('click', handleInteract);
+
 window.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'w') keys.w = true;
     if (e.key.toLowerCase() === 'a') keys.a = true;
     if (e.key.toLowerCase() === 's') keys.s = true;
     if (e.key.toLowerCase() === 'd') keys.d = true;
     if (e.key.toLowerCase() === 'e') {
-        const hit = interactionManager.check(player.getPosition(), true);
-        if (hit) window.soundManager.playBeep(600, 'sine'); // Feedback
+        triggerInteraction();
     }
 
     // Resume Audio Context on first interaction
@@ -91,10 +112,19 @@ function animate() {
     updateWorld(dt);
 
     if (player.mesh) {
-        // Smooth Camera Follow
-        const targetPos = player.getPosition().clone().add(cameraOffset);
+        // Chase Camera Logic
+        // 1. Calculate relative offset based on player rotation
+        const relativeOffset = cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), player.group.rotation.y);
+
+        // 2. Target Position = Player Position + Rotated Offset
+        const targetPos = player.getPosition().clone().add(relativeOffset);
+
+        // 3. Smoothly move camera
         camera.position.lerp(targetPos, 0.1);
-        camera.lookAt(player.getPosition());
+
+        // 4. Look at Player (plus a bit up so we don't look at feet)
+        const lookTarget = player.getPosition().clone().add(new THREE.Vector3(0, 2, 0));
+        camera.lookAt(lookTarget);
 
         // Interaction Hover Check (Pulse Visuals)
         interactionManager.check(player.getPosition(), false);

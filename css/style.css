@@ -79,6 +79,37 @@ p.controls {
     font-size: 1.2em;
     color: #aaa;
     margin-top: 20px;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 9999;
+}
+
+#mobile-interact-btn {
+    position: absolute;
+    bottom: 50px;
+    right: 50px;
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid white;
+    border-radius: 50%;
+    font-size: 40px;
+    display: none;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 9999;
+}
+
+/* Show on Touch or Small Screens */
+@media (hover: none) and (pointer: coarse),
+(max-width: 1024px) {
+    #mobile-interact-btn {
+        display: block;
+    }
+}
+
+#mobile-interact-btn:active {
+    background: rgba(0, 255, 0, 0.4);
 }
 
 #clue-box {

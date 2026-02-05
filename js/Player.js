@@ -87,6 +87,17 @@ export class Player {
         // No Mixer (OBJ has no skeletal animation)
 
         const isMoving = inputs.w || inputs.s;
+        if (isMoving) {
+            if (!this.stepTimer) this.stepTimer = 0;
+            this.stepTimer += dt;
+            if (this.stepTimer > 0.4) {
+                if (window.soundManager) window.soundManager.playStep();
+                this.stepTimer = 0;
+            }
+        } else {
+            this.stepTimer = 0.4; // Ready to step immediately on move
+        }
+
         const oldPos = this.group.position.clone();
 
         if (inputs.w) this.group.translateZ(-this.speed);

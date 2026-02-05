@@ -16,6 +16,13 @@ document.getElementById('canvas-container').appendChild(renderer.domElement);
 // Global Managers
 window.soundManager = new SoundManager();
 
+window.startGame = () => {
+    document.getElementById('start-screen').style.display = 'none';
+    window.soundManager.resume();
+    // Play a starting chime
+    window.soundManager.playBeep(600, 'sine');
+};
+
 // World
 createWorld(scene);
 
@@ -91,6 +98,11 @@ function animate() {
 
         // Interaction Hover Check (Pulse Visuals)
         interactionManager.check(player.getPosition(), false);
+    }
+
+    // Random Meow
+    if (Math.random() < 0.002) { // approx once every 500 frames (~8-10 sec)
+        if (window.soundManager) window.soundManager.playMeow();
     }
 
     renderer.render(scene, camera);
